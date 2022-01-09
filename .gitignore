@@ -1,0 +1,4 @@
+*.o
+include/glad/*
+src/glad.c
+tags
