@@ -26,21 +26,15 @@ int main()
 {
 	pthread_t main_thread, timer_thread;
 	if (pthread_mutex_init(&screen_lock, NULL) != 0)
-		throw_error("Cannot create pthread_mutex\n");
+		throw_error("Cannot create pthread_mutex", errno);
 	
 	if (pthread_mutex_init(&screen_lock, NULL) != 0)
-		throw_error("Cannot create pthread_mutex\n");
+		throw_error("Cannot create pthread_mutex", errno);
 	pthread_create(&main_thread, NULL, main_thread_routine, (void *) NULL);
 	//pthread_create(&timer_thread, NULL, timer_thread_routine, (void *)NULL);
 
 	pthread_join(main_thread, NULL);
 	//pthread_join(timer_thread, NULL);
-}
-
-void throw_error(const char *message)
-{
-	fprintf(stderr, message);
-	exit(EXIT_FAILURE);
 }
 
 int snake_get_size(struct snake_segment *player)
@@ -139,13 +133,15 @@ void snake_initialize_game()
 	struct food *mouse;
 	short init_x, init_y;
 	struct timeval cur_t;
+	struct Shader *shader_program;
 	gettimeofday(&cur_t, NULL);
 	player = (struct snake_segment*)malloc(sizeof(player));
 	mouse = (struct food*)malloc(sizeof(mouse));
 	srandom(cur_t.tv_sec);
 	graphics_initialize_window();
 	graphics_create_window(WINDOW_SIZE_X, WINDOW_SIZE_Y);
-	graphics_render_loop();
+	shader_construct(shader_program, "shaders/snake.vert", "shaders/snake.frag");
+	graphics_render_loop(shader_program);
 	/*
 	init_x = COLS/2;
 	init_y = LINES/2;

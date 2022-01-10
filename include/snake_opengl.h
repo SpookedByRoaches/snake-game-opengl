@@ -72,7 +72,6 @@ void snake_initialize_game();
 void snake_game_loop();
 void *timer_thread_routine();
 void *main_thread_routine();
-void throw_error(const char *message);
 int snake_input_is_acceptable(int input);
 void snake_alert_collision(int is_colliding);
 int snake_get_size(struct snake_segment *player);
