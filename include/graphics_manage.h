@@ -2,7 +2,7 @@
 #define GRAPHICS_MANAGE_H
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-
+#include <stdio.h>
 
 
 static GLFWwindow *main_win;
