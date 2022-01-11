@@ -12,7 +12,7 @@ struct Shader {
 	unsigned int id;
 };
 
-void shader_construct(struct Shader *shader_obj, const char *vertex_path, const char *fragment_path);
+struct Shader *shader_construct(const char *vertex_path, const char *fragment_path);
 void shader_use(struct Shader *shader_obj);
 void shader_set_bool(struct Shader *shader_obj, const char *name, bool val);
 void shader_set_int(struct Shader *shader_obj, const char *name, int val);

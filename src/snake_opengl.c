@@ -9,6 +9,7 @@
 #include <list.h>
 #include <snake_opengl.h>
 #include <graphics_manage.h>
+#include <cglm/cglm.h>
 
 
 pthread_mutex_t screen_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -22,6 +23,7 @@ char *pause_menu_options[] = {
 	NULL
 };
 
+struct IO_handler *input_output;
 int main()
 {
 	pthread_t main_thread, timer_thread;
@@ -134,14 +136,13 @@ void snake_initialize_game()
 	short init_x, init_y;
 	struct timeval cur_t;
 	struct Shader *shader_program;
+	input_output = IO_handler_construct();
 	gettimeofday(&cur_t, NULL);
 	player = (struct snake_segment*)malloc(sizeof(player));
 	mouse = (struct food*)malloc(sizeof(mouse));
 	srandom(cur_t.tv_sec);
-	graphics_initialize_window();
-	graphics_create_window(WINDOW_SIZE_X, WINDOW_SIZE_Y);
-	shader_construct(shader_program, "shaders/snake.vert", "shaders/snake.frag");
-	graphics_render_loop(shader_program);
+	graphics_initialize(input_output);
+	graphics_render_loop(input_output);
 	/*
 	init_x = COLS/2;
 	init_y = LINES/2;

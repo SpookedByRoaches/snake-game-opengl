@@ -1,13 +1,16 @@
 #include <shader.h>
 
 
-void shader_construct(struct Shader *shader_obj, const char *vertex_path, const char *fragment_path)
+struct Shader *shader_construct(const char *vertex_path, const char *fragment_path)
 {
 	unsigned int vert_id, frag_id, program_id;
+	struct Shader *shader_obj;
+	shader_obj = (struct Shader *)malloc(sizeof(struct Shader));
 	vert_id = shader_compile_shader(vertex_path, GL_VERTEX_SHADER);
 	frag_id = shader_compile_shader(fragment_path, GL_FRAGMENT_SHADER);
 	program_id = shader_link_shader(vert_id, frag_id);
 	shader_obj->id = program_id;
+	return shader_obj;
 }
 
 unsigned int shader_link_shader(unsigned int vert_id, unsigned int frag_id)
@@ -43,15 +46,16 @@ unsigned int shader_compile_shader(const char *shader_path, GLenum shader_type)
 	fseek(shader_f, 0, SEEK_END);
 	fsize = ftell(shader_f);
 	rewind(shader_f);
-	shader_buf = (char *)malloc(fsize);
+	shader_buf = (char *)malloc(fsize + 1);
 	if (shader_buf == NULL){
 		snprintf(error_message, MAX_MESSAGE_SIZE, "Cannot allocate memory for file buffer %s", shader_path);
 		throw_error(error_message, errno);
 	}
 	
-	if (fread(shader_buf, sizeof(char), fsize, shader_f) != fsize)
+	if (fread(shader_buf, sizeof(char), fsize + 1, shader_f) != fsize)
 		throw_error("Fread has read wrong number of characters", errno);
 	fclose(shader_f);
+	shader_buf[fsize] = '\0';
 	shader_id = glCreateShader(shader_type);
 	glShaderSource(shader_id, 1, (const char **)&shader_buf, NULL);
 	glCompileShader(shader_id);
