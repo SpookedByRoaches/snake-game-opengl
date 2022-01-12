@@ -9,7 +9,6 @@
 #include <list.h>
 #include <snake_opengl.h>
 #include <graphics_manage.h>
-#include <cglm/cglm.h>
 
 
 pthread_mutex_t screen_lock = PTHREAD_MUTEX_INITIALIZER;

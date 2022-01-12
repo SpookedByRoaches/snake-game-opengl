@@ -11,7 +11,7 @@
       "stopAtEntry": false,
       "cwd": "/home/bo3lwa/scripts/snake-game-opengl",
       "environment": [],
-      "program": "/home/bo3lwa/scripts/snake-game-opengl/snake_opengl",
+      "program": "/home/bo3lwa/scripts/snake-game-opengl/build/Debug/outDebug",
       "internalConsoleOptions": "openOnSessionStart",
       "MIMode": "gdb",
       "miDebuggerPath": "gdb",
