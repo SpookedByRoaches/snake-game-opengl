@@ -1,6 +1,5 @@
 #include <graphics_manage.h>
 #include <stdbool.h>
-#include <math.h>
 
 struct IO_handler *IO_handler_construct()
 {
@@ -67,9 +66,10 @@ void graphics_render_loop(struct IO_handler *input_output)
 void create_test_graphics(struct IO_handler *input_output)
 {	
 		static unsigned int VBO = 6969;
-		static unsigned int VAO;
+		static unsigned int VAO, e;
 		static mat4 transform;
 		static vec3 translation;
+		static vec3 rot_axis;
 		static float test_vertices[] = {
 			-0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f,
 			0.5f, -0.5f, 0.0f,  0.0f, 1.0f, 0.0f,
@@ -77,10 +77,18 @@ void create_test_graphics(struct IO_handler *input_output)
 		};
 
 		translation[0] = 0.2;
-		translation[1] = 0.2;
-		translation[2] = 0.0;
+		translation[1] = 0.5;
+		translation[2] = 0;
+
+		rot_axis[0] = 0;
+		rot_axis[1] = 0;
+		rot_axis[2] = 1;
+
+		glm_mat4_identity(transform);
 
 		glm_translate(transform, translation);
+
+		glm_rotate(transform, GLM_PI, rot_axis);
 
 
 
@@ -94,8 +102,10 @@ void create_test_graphics(struct IO_handler *input_output)
 			glEnableVertexAttribArray(0);
 			glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
 			glEnableVertexAttribArray(1);
+			shader_use(input_output->shader);
 			unsigned int transformLoc = glGetUniformLocation(input_output->shader->id, "transform");
 			glUniformMatrix4fv(transformLoc, 1, GL_FALSE, transform);
+			e = glGetError();
 		}
 		glClearColor(0, 0, 0, 1.0);
 		glClear(GL_COLOR_BUFFER_BIT);

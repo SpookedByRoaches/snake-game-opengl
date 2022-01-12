@@ -1,4 +1,4 @@
-LINKED_LIBS = -lglfw -lGL -lX11 -lpthread -lXrandr -lXi -ldl -lncurses
+LINKED_LIBS = -lglfw -lGL -lX11 -lpthread -lXrandr -lXi -ldl -lncurses -lm -lcglm
 INCLUDE = -Iinclude
 FLAGS = -g
 SRC_FILES = src/snake_opengl.c
@@ -15,7 +15,7 @@ shader.o: src/shader.c $(HEADERS)
 	gcc src/shader.c -c $(INCLUDE) -g
 
 graphics_manage.o: src/graphics_manage.c $(HEADERS)
-	gcc src/graphics_manage.c -c $(INCLUDE) -lmath -lcglm -g
+	gcc src/graphics_manage.c -c $(INCLUDE) -g
 
 clean: $(OBJ)
 	rm $(OBJ)

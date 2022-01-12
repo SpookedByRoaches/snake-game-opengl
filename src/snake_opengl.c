@@ -70,7 +70,7 @@ void draw_frame()
 	pthread_mutex_unlock(&screen_lock);
 }
 
-void *timer_thread_routine(void *)
+void *timer_thread_routine()
 {
 	struct timeval t_before, t_after;
 	long int usec_before, usec_after, usec_diff;
@@ -123,7 +123,7 @@ void timer_draw_time(int cur_time)
 	pthread_mutex_unlock(&screen_lock);
 }
 
-void *main_thread_routine(void *)
+void *main_thread_routine()
 {
 	snake_initialize_game();
 	return NULL;
