@@ -3,26 +3,45 @@
 
 struct IO_handler *IO_handler_construct()
 {
-	
-
 	struct IO_handler *input_output;
 	input_output = (struct IO_handler *)malloc(sizeof(struct IO_handler));
-	input_output->sq_VBO = 0;
-	input_output->sq_EBO = 0;
 	input_output->sq_VAO = 0;
-	__graphics_initialize(input_output);
-	__grpahics_construct_square_buffers(input_output);
+	graphics_initialize(input_output);
+	grpahics_construct_square_buffers(input_output);
 	return input_output;
 }
 
-void __grpahics_construct_square_buffers(struct IO_handler *input_output)
+void graphics_draw_square(struct IO_handler *input_output, float *size, float *pos, float *rot, float *rgb)
 {
-	unsigned int e;
+	shader_use(input_output->shader);
+	mat4 model, projection, view;
+	glm_mat4_identity(projection);
+	glm_mat4_identity(model);
+	glm_mat4_identity(view);
+
+	shader_set_mat4(input_output->shader, "view", view);
+	//shader_set_mat4(input_output->shader, "translation", translation);
+	//shader_set_mat4(input_output->shader, "rotation", rotation);
+	glm_ortho(-1000.0, 1000.0, -1000.0, 1000.0, 0.1, 100, projection);
+	shader_set_mat4(input_output->shader, "projection", projection);
+	shader_set_mat4(input_output->shader, "model", model);
+
+	float col[3] = {1.0f, 1.0f, 1.0f};
+
+	shader_set_vec3f(input_output->shader, "spriteCol", col);
+	glBindVertexArray(input_output->sq_VAO);
+	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+	glBindVertexArray(0);
+}
+
+void grpahics_construct_square_buffers(struct IO_handler *input_output)
+{
+	unsigned int e, VBO, EBO;
 	float vertices[] = {
-		-500.0f, -500.0f, 0.0f, 1.0f, 0.0f, 0.0f,
-         500.0f, -500.0f, 0.0f, 0.0f, 1.0f, 0.0f,
-         -500.0f,  500.0f, 0.0f, 0.0f, 0.0f, 1.0f,
-         500.0f,  500.0f, 0.0f, 0.0f, 0.5f, 0.5f
+		-500.0f, -500.0f,
+         500.0f, -500.0f,
+         -500.0f,  500.0f,
+         500.0f,  500.0f,
 	};
 
 	static unsigned int indices[] = {
@@ -30,26 +49,24 @@ void __grpahics_construct_square_buffers(struct IO_handler *input_output)
 		1, 2, 3
 	};
 
-	glGenBuffers(1, &(input_output->sq_VBO));
-	glGenBuffers(1, &(input_output->sq_EBO));
-	glGenVertexArrays(1, &(input_output->sq_EBO));
+	glGenBuffers(1, &(VBO));
+	glGenBuffers(1, &(EBO));
+	glGenVertexArrays(1, &(EBO));
 	glBindVertexArray(&input_output->sq_VAO);
-	glBindBuffer(GL_ARRAY_BUFFER, &input_output->sq_VBO);
+	glBindBuffer(GL_ARRAY_BUFFER, &VBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, &input_output->sq_EBO);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, &EBO);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)0);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void *)0);
 	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(3 * sizeof(float)));
-	glEnableVertexAttribArray(1);
+	//glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void *)(2 * sizeof(float)));
+	//glEnableVertexAttribArray(1);
 
 	e = glGetError();
-	
-	shader_use(input_output->shader);
 }
 
 
-int __graphics_initialize(struct IO_handler *input_output)
+int graphics_initialize(struct IO_handler *input_output)
 {
 	if (!glfwInit())
 		return -1;
@@ -73,7 +90,7 @@ int graphics_create_window(struct IO_handler *input_output, int sizex, int sizey
 		goto create_win_error;
 	
 	glViewport(0, 0, sizex, sizey);
-	glfwSetFramebufferSizeCallback(input_output->win, __framebuffer_size_callback);
+	glfwSetFramebufferSizeCallback(input_output->win, framebuffer_size_callback);
 	return 1;
 create_win_error:
     glfwTerminate();
@@ -86,7 +103,7 @@ void processInput(struct IO_handler *input_output)
         glfwSetWindowShouldClose(input_output->win, true);
 }
 
-void __framebuffer_size_callback(GLFWwindow* window, int width, int height)
+void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
 	float cur_ratio = (float)width/(float)height;
 	float left, bottom;
@@ -107,15 +124,11 @@ void graphics_render_loop(struct IO_handler *input_output)
 	while(!glfwWindowShouldClose(input_output->win))
 	{
 		processInput(input_output);
-		create_test_graphics(input_output);
+		//create_test_graphics(input_output);
+		graphics_draw_square(input_output, NULL, NULL, NULL, NULL);
     	glfwSwapBuffers(input_output->win);
     	glfwPollEvents();
 	}
-}
-
-void graphics_draw_square(struct IO_handler *input_output)
-{
-
 }
 
 void create_test_graphics(struct IO_handler *input_output)
@@ -128,7 +141,7 @@ void create_test_graphics(struct IO_handler *input_output)
 		-0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f,
          0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f,
          -0.5f,  0.5f, 0.0f, 0.0f, 0.0f, 1.0f,
-         0.5f,  0.5f, 0.0f, 0.0f, 0.5f, 0.5f
+         0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 0.0f
 	};
 	static unsigned int indices[] = {
 		0, 1, 2,

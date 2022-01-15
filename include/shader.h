@@ -17,11 +17,18 @@ struct Shader *shader_construct(const char *vertex_path, const char *fragment_pa
 void shader_use(struct Shader *shader_obj);
 void shader_set_bool(struct Shader *shader_obj, const char *name, bool val);
 void shader_set_int(struct Shader *shader_obj, const char *name, int val);
+void shader_set_vec2i(struct Shader *shader_obj, const char *name, int *val);
+void shader_set_vec3i(struct Shader *shader_obj, const char *name, int *val);
+void shader_set_vec4i(struct Shader *shader_obj, const char *name, int *val);
 void shader_set_float(struct Shader *shader_obj, const char *name, float val);
+void shader_set_vec2f(struct Shader *shader_obj, const char *name, float *val);
+void shader_set_vec3f(struct Shader *shader_obj, const char *name, float *val);
+void shader_set_vec4f(struct Shader *shader_obj, const char *name, float *val);
+
+void shader_set_mat4(struct Shader *shader_obj, const char *name, float **val);
 void throw_error(const char *message, int err_code);
 void shader_get_uniform_err(GLenum err_code, const char *caller);
 void shader_set_uniform_err(GLenum err_code, const char *caller);
 unsigned int shader_compile_shader(const char *shader_path, GLenum shader_type);
 unsigned int shader_link_shader(unsigned int vert_id, unsigned int frag_id);
-void shader_set_mat4(struct Shader *shader_obj, const char *name, mat4 val);
 #endif

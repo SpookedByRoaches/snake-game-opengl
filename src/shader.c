@@ -114,6 +114,33 @@ void shader_set_int(struct Shader *shader_obj, const char *name, int val)
 	shader_set_uniform_err(glGetError(), "shader_set_int");
 }
 
+void shader_set_vec2i(struct Shader *shader_obj, const char *name, int *val)
+{
+	int loc;
+	loc = glGetUniformLocation(shader_obj->id, name);
+	shader_get_uniform_err(glGetError(), "shader_set_vec2i");
+	glUniform2i(loc, val[0], val[1]);
+	shader_set_uniform_err(glGetError(), "shader_set_vec2i");
+}
+
+void shader_set_vec3i(struct Shader *shader_obj, const char *name, int *val)
+{
+	int loc;
+	loc = glGetUniformLocation(shader_obj->id, name);
+	shader_get_uniform_err(glGetError(), "shader_set_vec3i");
+	glUniform3i(loc, val[0], val[1], val[2]);
+	shader_set_uniform_err(glGetError(), "shader_set_vec3i");
+}
+
+void shader_set_vec4i(struct Shader *shader_obj, const char *name, int *val)
+{
+	int loc;
+	loc = glGetUniformLocation(shader_obj->id, name);
+	shader_get_uniform_err(glGetError(), "shader_set_vec4i");
+	glUniform4i(loc, val[0], val[1], val[2], val[3]);
+	shader_set_uniform_err(glGetError(), "shader_set_vec4i");
+}
+
 void shader_set_float(struct Shader *shader_obj, const char *name, float val)
 {
 	int loc;
@@ -123,7 +150,34 @@ void shader_set_float(struct Shader *shader_obj, const char *name, float val)
 	shader_set_uniform_err(glGetError(), "shader_set_float");
 }
 
-void shader_set_mat4(struct Shader *shader_obj, const char *name, mat4 val)
+void shader_set_vec2f(struct Shader *shader_obj, const char *name, float *val)
+{
+	int loc;
+	loc = glGetUniformLocation(shader_obj->id, name);
+	shader_get_uniform_err(glGetError(), "shader_set_vec2f");
+	glUniform2f(loc, val[0], val[1]);
+	shader_set_uniform_err(glGetError(), "shader_set_vec2f");
+}
+
+void shader_set_vec3f(struct Shader *shader_obj, const char *name, float *val)
+{
+	int loc;
+	loc = glGetUniformLocation(shader_obj->id, name);
+	shader_get_uniform_err(glGetError(), "shader_set_vec3f");
+	glUniform3f(loc, val[0], val[1], val[2]);
+	shader_set_uniform_err(glGetError(), "shader_set_vec3f");
+}
+
+void shader_set_vec4f(struct Shader *shader_obj, const char *name, float *val)
+{
+	int loc;
+	loc = glGetUniformLocation(shader_obj->id, name);
+	shader_get_uniform_err(glGetError(), "shader_set_vec4f");
+	glUniform4f(loc, val[0], val[1], val[2], val[3]);
+	shader_set_uniform_err(glGetError(), "shader_set_vec4f");
+}
+
+void shader_set_mat4(struct Shader *shader_obj, const char *name, float **val)
 {
 	int loc;
 	loc = glGetUniformLocation(shader_obj->id, name);
