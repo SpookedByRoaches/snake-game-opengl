@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
+#include <cglm/cglm.h>
 
 #define MAX_MESSAGE_SIZE 512
 struct Shader {
@@ -22,4 +23,5 @@ void shader_get_uniform_err(GLenum err_code, const char *caller);
 void shader_set_uniform_err(GLenum err_code, const char *caller);
 unsigned int shader_compile_shader(const char *shader_path, GLenum shader_type);
 unsigned int shader_link_shader(unsigned int vert_id, unsigned int frag_id);
+void shader_set_mat4(struct Shader *shader_obj, const char *name, mat4 val);
 #endif

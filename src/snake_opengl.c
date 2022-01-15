@@ -140,7 +140,6 @@ void snake_initialize_game()
 	player = (struct snake_segment*)malloc(sizeof(player));
 	mouse = (struct food*)malloc(sizeof(mouse));
 	srandom(cur_t.tv_sec);
-	graphics_initialize(input_output);
 	graphics_render_loop(input_output);
 	/*
 	init_x = COLS/2;

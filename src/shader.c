@@ -123,6 +123,15 @@ void shader_set_float(struct Shader *shader_obj, const char *name, float val)
 	shader_set_uniform_err(glGetError(), "shader_set_float");
 }
 
+void shader_set_mat4(struct Shader *shader_obj, const char *name, mat4 val)
+{
+	int loc;
+	loc = glGetUniformLocation(shader_obj->id, name);
+	shader_get_uniform_err(glGetError(), "shader_set_mat4");
+	glUniformMatrix4fv(loc, 1, GL_FALSE, val);
+	shader_set_uniform_err(glGetError(), "shader_set_mat4");
+}
+
 void shader_get_uniform_err(GLenum err_code, const char *caller)
 {
 	char message[MAX_MESSAGE_SIZE];
