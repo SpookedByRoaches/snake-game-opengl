@@ -6,6 +6,8 @@
 #include <shader.h>
 #include <cglm/cglm.h>
 
+#define WINDOW_SCALE 1000.0
+
 
 struct IO_handler {
 	struct Shader *shader;
@@ -22,4 +24,6 @@ void processInput(struct IO_handler *input_output);
 void create_test_graphics(struct IO_handler *input_output);
 void graphics_draw_square(struct IO_handler *input_output, float *size, float *pos, float *rot, float *rgb);
 void grpahics_construct_square_buffers(struct IO_handler *input_output);
+void APIENTRY gl_debug_callback(GLenum source, GLenum type, unsigned int id, GLenum severity, 
+                            GLsizei length, const char *message, const void *userParam);
 #endif //GRAPHICS_MANAGE_H
