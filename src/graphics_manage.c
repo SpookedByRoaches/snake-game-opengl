@@ -1,5 +1,7 @@
 #include <graphics_manage.h>
 #include <stdbool.h>
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
 
 struct IO_handler *IO_handler_construct()
 {
@@ -11,7 +13,7 @@ struct IO_handler *IO_handler_construct()
 	return input_output;
 }
 
-void graphics_draw_square(struct IO_handler *input_output, float *size, float *pos, float *rot, float *rgb)
+void graphics_draw_square(struct IO_handler *input_output, float *size, float *pos, float *rot, float *rgb, enum game_object which)
 {
 	shader_use(input_output->shader);
 	mat4 model, projection, view;
@@ -22,7 +24,7 @@ void graphics_draw_square(struct IO_handler *input_output, float *size, float *p
 
 	shader_set_mat4(input_output->shader, "view", view);
 	
-	glm_ortho(-WINDOW_SCALE, WINDOW_SCALE, -WINDOW_SCALE, WINDOW_SCALE, -0.1, 100, projection);
+	glm_ortho(0, WINDOW_SCALE, 0, WINDOW_SCALE, -0.1, 100, projection);
 	glm_translate(model, trans);
 	glm_rotate(model, *rot, (vec3){0.0f, 0.0f, 1.0f});
 	glm_scale(model, (vec3){size[0], size[1], 1.0f});
@@ -32,6 +34,24 @@ void graphics_draw_square(struct IO_handler *input_output, float *size, float *p
 	shader_set_mat4(input_output->shader, "model", model);
 
 	shader_set_vec3f(input_output->shader, "sprite_col", rgb);
+	glActiveTexture(GL_TEXTURE0);
+	switch(which){
+	case head:
+	    glBindTexture(GL_TEXTURE_2D, input_output->head_tex_id);
+		break;
+	case tail:
+	    glBindTexture(GL_TEXTURE_2D, input_output->tail_tex_id);
+		break;
+	case body:
+	    glBindTexture(GL_TEXTURE_2D, input_output->segment_tex_id);
+		break;
+	case food:
+	    glBindTexture(GL_TEXTURE_2D, input_output->food_tex_id);
+		break;
+	case background:
+		glBindTexture(GL_TEXTURE_2D, input_output->bg_tex_id);
+		break;
+	}
 	glBindVertexArray(input_output->sq_VAO);
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
@@ -41,14 +61,14 @@ void grpahics_construct_square_buffers(struct IO_handler *input_output)
 {
 	unsigned int e, VBO, EBO;
 	float vertices[] = {
-		-50.0f, -50.0f, 1.0f, 1.0f,
-         50.0f, -50.0f, 1.0f, 0.0f,
-        -50.0f,  50.0f, 0.0f, 0.0f,
-         50.0f,  50.0f, 0.0f, 1.0f
+		 SNAKE_PART_LENGTH/2,  SNAKE_PART_LENGTH/2, 1.0f, 1.0f,
+         SNAKE_PART_LENGTH/2, -SNAKE_PART_LENGTH/2, 1.0f, 0.0f,
+        -SNAKE_PART_LENGTH/2, -SNAKE_PART_LENGTH/2, 0.0f, 0.0f,
+        -SNAKE_PART_LENGTH/2,  SNAKE_PART_LENGTH/2, 0.0f, 1.0f
 	};
 
 	static unsigned int indices[] = {
-		0, 1, 2,
+		0, 1, 3,
 		1, 2, 3
 	};
 
@@ -61,16 +81,77 @@ void grpahics_construct_square_buffers(struct IO_handler *input_output)
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void *)0);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)0);
 	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void *)0);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)(2 * sizeof(float)));
 	glEnableVertexAttribArray(1);
 }
 
+void graphics_load_texture(struct IO_handler *input_output, const char *fname, unsigned int *id)
+{
+	int width, height, nr_channels, format;
+
+	unsigned char *image = stbi_load(fname, &width, &height, &nr_channels, 0);
+
+	if (image == NULL){
+		printf("Error: cannot load image\n");
+		exit(EXIT_FAILURE);
+	}
+	
+	format = get_image_format(fname);
+
+	glGenTextures(1, id);
+	glBindTexture(GL_TEXTURE_2D, *id);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, image);
+	glGenerateMipmap(GL_TEXTURE_2D);
+
+	stbi_image_free(image);
+}
+
+int get_image_format(const char *name)
+{
+	char *saveptr = NULL;
+    char *extension;
+    char *temp;
+	char *copy;
+	strcpy(copy, name);
+	for (temp = strtok_r(copy, ".", &saveptr);
+    	 temp != NULL;
+    	 temp = strtok_r(NULL, ".", &saveptr)
+		){
+        	extension = temp;
+    }
+
+	if (!strcmp(extension, "png"))
+		return GL_RGBA;
+	else if (!strcmp(extension, "jpg"))
+		return GL_RGB;
+	else if (!strcmp(extension, "jpeg"))
+		return GL_RGB;
+}
+
+void graphics_clear_game_screen(struct IO_handler *input_output)
+{
+	glClearColor(0, 0.3, 0.3, 1.0);
+	glClear(GL_COLOR_BUFFER_BIT);
+}
+
+void graphics_show(struct IO_handler *input_output)
+{
+	glfwSwapBuffers(input_output->win);
+}
 
 int graphics_initialize(struct IO_handler *input_output)
 {
 	int flags;
+	float borderColor[] = { 1.0f, 1.0f, 0.0f, 1.0f };
 	if (!glfwInit())
 		return -1;
 
@@ -78,7 +159,7 @@ int graphics_initialize(struct IO_handler *input_output)
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
-	
+	stbi_set_flip_vertically_on_load(true);  
 	graphics_create_window(input_output, 800, 800);
 	glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
 	if (flags & GL_CONTEXT_FLAG_DEBUG_BIT)
@@ -89,11 +170,13 @@ int graphics_initialize(struct IO_handler *input_output)
 		glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, (void *)NULL, GL_TRUE);
 	}
 	input_output->shader = shader_construct("shaders/snake.vert", "shaders/snake.frag");
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	graphics_load_texture(input_output, HEAD_IMAGE_PATH, &input_output->head_tex_id);
+	graphics_load_texture(input_output, TAIL_IMAGE_PATH, &input_output->tail_tex_id);
+	graphics_load_texture(input_output, SEGMENT_IMAGE_PATH, &input_output->segment_tex_id);
+	graphics_load_texture(input_output, FOOD_IMAGE_PATH, &input_output->food_tex_id);
+	graphics_load_texture(input_output, DESERT_IMAGE_PATH, &input_output->bg_tex_id);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glEnable(GL_BLEND);
 }
 
 int graphics_create_window(struct IO_handler *input_output, int sizex, int sizey)
@@ -108,10 +191,26 @@ int graphics_create_window(struct IO_handler *input_output, int sizex, int sizey
 	
 	glViewport(0, 0, sizex, sizey);
 	glfwSetFramebufferSizeCallback(input_output->win, framebuffer_size_callback);
+	glfwSetKeyCallback(input_output->win, kb_key_callback);
+	glfwSetWindowUserPointer(input_output->win, input_output);
 	return 1;
 create_win_error:
     glfwTerminate();
     return -1;
+}
+
+void kb_key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+
+	struct IO_handler *input_output = (struct IO_handler *)glfwGetWindowUserPointer(window);
+
+	if (key == GLFW_KEY_Q){
+		input_output->cur_button = GLFW_KEY_Q;
+	} else if (action == GLFW_RELEASE && !(key == GLFW_KEY_Q)){
+		//input_output->cur_button = 0;
+	} else {
+		input_output->cur_button = key;
+	}
 }
 
 void processInput(struct IO_handler *input_output)
@@ -138,20 +237,27 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 
 void graphics_render_loop(struct IO_handler *input_output)
 {
-	float size[2] = {1.0f, 1.0f};
-	float col[3] = {1.0f, 0.0f, 0.0f};
-	float pos[2] = {500, 300};
-	float rot = GLM_PI_4f;
+	float size[2] = {2.0f, 2.0f};
+	float col[3] = {1.0f, 1.0f, 1.0f};
+	float pos[2] = {0, 0};
+
+	float rot = 0;
 	float rot2 = 0;
 	while(!glfwWindowShouldClose(input_output->win))
 	{
 		processInput(input_output);
-		//create_test_graphics(input_output);
-		graphics_draw_square(input_output, size, pos, &rot, col);
-    	glfwSwapBuffers(input_output->win);
-    	glfwPollEvents();
 		glClearColor(0, 0.3, 0.3, 1.0);
 		glClear(GL_COLOR_BUFFER_BIT);
+		pos[1] = 0;
+		graphics_draw_square(input_output, size, pos, &rot, col, head);
+		for(int i = 0; i < 3; i++){
+			pos[1] += SNAKE_PART_LENGTH*size[0];
+			graphics_draw_square(input_output, size, pos, &rot, col, body);
+		}
+		pos[1] += SNAKE_PART_LENGTH*size[0];
+		graphics_draw_square(input_output, size, pos, &rot, col, tail);
+    	glfwSwapBuffers(input_output->win);
+    	glfwPollEvents();
 	}
 }
 
@@ -182,7 +288,7 @@ void create_test_graphics(struct IO_handler *input_output)
 
 	glm_translate(model_mat, (vec3){0.0, 0.0, 0});
 
-	glm_ortho(-1000.0, 1000.0, -1000.0, 1000.0, 0.1, 100, projection_mat);
+	glm_ortho(-WINDOW_SCALE/2, 1000.0, -1000.0, 1000.0, 0.1, 100, projection_mat);
 
 	//glm_perspective(GLM_PI_4, (float)width/(float)height, 0.1, 100, projection_mat);
 

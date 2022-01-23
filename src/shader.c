@@ -1,5 +1,4 @@
 #include <shader.h>
-#include <stb_image.h>
 
 struct Shader *shader_construct(const char *vertex_path, const char *fragment_path)
 {
@@ -10,6 +9,7 @@ struct Shader *shader_construct(const char *vertex_path, const char *fragment_pa
 	frag_id = shader_compile_shader(fragment_path, GL_FRAGMENT_SHADER);
 	program_id = shader_link_shader(vert_id, frag_id);
 	shader_obj->id = program_id;
+	
 	return shader_obj;
 }
 

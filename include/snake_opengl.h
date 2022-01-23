@@ -1,6 +1,8 @@
 #ifndef COOL_SHIT_H
 #define COOL_SHIT_H
 
+#include <graphics_manage.h>
+
 #define semi_filled_block "\u25A3"
 #define triangle_up "\u25B2"
 #define triangle_right "\u25B6"
@@ -22,8 +24,10 @@
 #define COLOR_BRIGHT_YELLOW 226
 #define COLOR_BEIGE 7
 #define T_DIV 30
+#define N_COLS (int)(WINDOW_SCALE/SNAKE_PART_LENGTH)
+#define N_LINES (int)(WINDOW_SCALE/SNAKE_PART_LENGTH)
 #define LOWER_X_LIMIT 1
-#define HIGHER_X_LIMIT COLS - 2
+#define HIGHER_X_LIMIT N_COLS - 2
 #define LOWER_Y_LIMIT INFO_LINES + 1
 #define HIGHER_Y_LIMIT LINES - 3
 #define WINDOW_SIZE_X 800
@@ -45,12 +49,12 @@ struct food {
 };
 
 void snake_construct(struct snake_segment *player, int x, int y, enum direction heading);
-void snake_draw(struct snake_segment *player ,struct food *mouse);
-void snake_tick(struct snake_segment *player, struct food *mouse);
+void snake_draw(struct snake_segment *player ,struct food *mouse, struct IO_handler *input_output);
+void snake_tick(struct snake_segment *player, struct food *mouse, struct IO_handler *input_output);
 void snake_set_up_terminal_settings();
 void snake_restore_terminal_settings();
 void clear_game_screen();
-void snake_handle_input(struct snake_segment *player, struct food *mouse);
+void snake_handle_input(struct snake_segment *player, struct food *mouse, struct IO_handler *input_output);
 void snake_change_direction(struct snake_segment *player, int input);
 void snake_move_head(struct snake_segment *player);
 void print_debug(const char * str);
@@ -58,15 +62,17 @@ short snake_next_x_position(struct snake_segment *segment);
 short snake_next_y_position(struct snake_segment *segment);
 short snake_previous_x_position(struct snake_segment *segment);
 short snake_previous_y_position(struct snake_segment *segment);
-void kill_everything(struct snake_segment *player, struct food *mouse);
+void kill_everything(struct snake_segment *player, struct food *mouse, struct IO_handler *input_output);
 int is_head_colliding(struct snake_segment *player);
 void snake_move_body(struct snake_segment *player);
+void snake_draw_background(struct IO_handler *input_output);
 void snake_move_segment(struct snake_segment *segment);
-void snake_draw_head(struct snake_segment *player);
-void snake_draw_segment(struct snake_segment *segment);
+void snake_draw_head(struct snake_segment *player, struct IO_handler *input_output);
+void snake_draw_segment(struct snake_segment *segment, struct IO_handler *input_output);
+void snake_draw_tail(struct snake_segment *tail_segment, struct IO_handler *input_output);
 void snake_place_food(struct snake_segment *player, struct food *mouse);
 void snake_grow(struct snake_segment *player, struct snake_segment *tail_copy);
-void snake_draw_food(struct food *mouse);
+void snake_draw_food(struct food *mouse, struct IO_handler *input_output);
 void snake_copy_tail(struct snake_segment *player, struct snake_segment *copy);
 void snake_initialize_game();
 void snake_game_loop();

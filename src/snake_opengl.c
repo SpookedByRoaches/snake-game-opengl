@@ -8,7 +8,6 @@
 #include <pthread.h>
 #include <list.h>
 #include <snake_opengl.h>
-#include <graphics_manage.h>
 
 
 pthread_mutex_t screen_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -140,22 +139,17 @@ void snake_initialize_game()
 	player = (struct snake_segment*)malloc(sizeof(player));
 	mouse = (struct food*)malloc(sizeof(mouse));
 	srandom(cur_t.tv_sec);
-	graphics_render_loop(input_output);
-	/*
-	init_x = COLS/2;
-	init_y = LINES/2;
-	if ((init_x % 2) == 0)
-		init_x--;
+	init_x = N_COLS/2;
+	init_y = N_LINES/2;
 	snake_construct(player, init_x, init_y, up);
-	draw_frame();
+	snake_place_food(player, mouse);
+	snake_draw(player, mouse, input_output);
+
 	snake_place_food(player, mouse);
 	for (;;){
-		snake_tick(player, mouse);
-		snake_draw(player, mouse);
+		snake_tick(player, mouse, input_output);
+		snake_draw(player, mouse, input_output);
 	}
-	snake_restore_terminal_settings();
-	*/
-
 }
 
 void snake_construct(struct snake_segment *player, int x, int y, enum direction heading)
@@ -166,15 +160,16 @@ void snake_construct(struct snake_segment *player, int x, int y, enum direction 
 	INIT_LIST_HEAD(&player->list);
 }
 
-void snake_tick(struct snake_segment *player, struct food *mouse)
+void snake_tick(struct snake_segment *player, struct food *mouse, struct IO_handler *input_output)
 {
 	static struct snake_segment temp_tail = {x: 0, y: 0, heading: up};
-	snake_handle_input(player, mouse);
+	double t = glfwGetTime();
+	snake_handle_input(player, mouse, input_output);
 	if (is_head_colliding(player)){
-		snake_alert_collision(1);
+		//snake_alert_collision(1);
 		return;
 	}
-	snake_alert_collision(0);
+	//snake_alert_collision(0);
 	snake_copy_tail(player, &temp_tail);	
 	snake_move_head(player);
 	snake_move_body(player);
@@ -257,10 +252,10 @@ int is_head_colliding(struct snake_segment *player)
 	short player_next_x, player_next_y, cur_segment_next_x, cur_segment_next_y;
 	struct snake_segment *cur_segment;
 	player_next_x = snake_next_x_position(player);
-	if ((player_next_x >= COLS - 1) || (player_next_x <= 0))
+	if ((player_next_x >= N_COLS - 1) || (player_next_x <= 0))
 		return 1;
 	player_next_y = snake_next_y_position(player);
-	if ((player_next_y >= LINES - 1) || (player_next_y <= INFO_LINES))
+	if ((player_next_y >= N_LINES - 1) || (player_next_y <= INFO_LINES))
 		return 1;
 	list_for_each_entry(cur_segment, &player->list, list){
 		cur_segment_next_x = snake_next_x_position(cur_segment);
@@ -276,9 +271,9 @@ short snake_next_x_position(struct snake_segment *segment)
 {
 	switch (segment->heading){
 	case right:
-		return segment->x + 2;
+		return segment->x + 1;
 	case left:
-		return segment->x - 2;
+		return segment->x - 1;
 	default:
 		return segment->x;
 	}
@@ -300,9 +295,9 @@ short snake_next_y_position(struct snake_segment *segment)
 {
 	switch (segment->heading){
 	case down:
-		return segment->y + 1;
-	case up:
 		return segment->y - 1;
+	case up:
+		return segment->y + 1;
 	default:
 		return segment->y;
 	}
@@ -320,33 +315,45 @@ short snake_previous_y_position(struct snake_segment *segment)
 	}
 }
 
-void snake_draw_food(struct food *mouse)
+void snake_draw_food(struct food *mouse, struct IO_handler *input_output)
 {
-	move(mouse->y, mouse->x);
-	attron(COLOR_PAIR(FOOD_COLOR_PAIR));
-	printw(diamond);
-	attroff(COLOR_PAIR(FOOD_COLOR_PAIR));
+	float size[2] = {1.0f, 1.0f};
+	float pos[2] = {0.0, 0.0};
+	float col[3] = {1.0f, 1.0f, 1.0f};
+
+	pos[0] = mouse->x * SNAKE_PART_LENGTH;
+	pos[1] = mouse->y * SNAKE_PART_LENGTH;
+
+	float rot = 0;
+
+	graphics_draw_square(input_output, size, pos, &rot, col, food);
 }
 
-void snake_draw(struct snake_segment *player, struct food *mouse)
+void snake_draw(struct snake_segment *player, struct food *mouse, struct IO_handler *input_output)
 {
 	struct timeval before, after;
 	struct snake_segment *cur_segment;
+	struct snake_segment *tail_segment = NULL;
 	struct list_head *i;
 	gettimeofday(&before, NULL);
 	pthread_mutex_lock(&screen_lock);
-	clear_game_screen();
-	attron(COLOR_PAIR(SNAKE_COLOR_PAIR));
-	snake_draw_head(player);
+	graphics_clear_game_screen(input_output);
+	snake_draw_background(input_output);
+	snake_draw_head(player, input_output);
 	list_for_each(i, &player->list){
+		if (list_is_last(i, &player->list)){
+			tail_segment = list_entry(i, struct snake_segment, list);
+			break;
+		}
 		cur_segment = list_entry(i, struct snake_segment, list);
-		snake_draw_segment(cur_segment);
+		snake_draw_segment(cur_segment, input_output);
 	}
-	snake_draw_food(mouse);
-	attroff(COLOR_PAIR(SNAKE_COLOR_PAIR));
-	snake_draw_info(player, mouse);
+	if (tail_segment)
+		snake_draw_tail(tail_segment, input_output);
+	snake_draw_food(mouse, input_output);
+	graphics_show(input_output);
+	//snake_draw_info(player, mouse);
 	gettimeofday(&after, NULL);
-	refresh();
 	pthread_mutex_unlock(&screen_lock);
 }
 
@@ -354,40 +361,78 @@ void snake_draw_info(struct snake_segment *player, struct food *mouse)
 {
 	int cur_score = snake_get_size(player);
 
-	move(0, COLS/2);
-	printw("%d/%d", cur_score, (COLS/2 - 1)*(LINES - 4));
+	move(0, N_COLS/2);
+	printw("%d/%d", cur_score, (N_COLS/2 - 1)*(N_LINES - 4));
 }
 
-void snake_draw_head(struct snake_segment *player)
+void snake_draw_head(struct snake_segment *player, struct IO_handler *input_output)
 {
-	int string_size = 4;
-	char direction_char[string_size];
+	float size[2] = {1.0f, 1.0f};
+	float pos[2] = {0.0, 0.0};
+	float col[3] = {1.0f, 1.0f, 1.0f};
 
-	move(player->y, player->x);
-	switch (player->heading){
-	case up:
-		strncpy(direction_char, triangle_up, string_size);
-		break;
-	case right:
-		strncpy(direction_char, triangle_right, string_size);
-		break;
-	case down:
-		strncpy(direction_char, triangle_down, string_size);
-		break;
-	case left:
-		strncpy(direction_char, triangle_left, string_size);
-		break;
-	default:
-		strncpy(direction_char, "??", string_size);
-		break;
+	pos[0] = player->x * SNAKE_PART_LENGTH;
+	pos[1] = player->y * SNAKE_PART_LENGTH;
+
+	float rot;
+
+	switch(player->heading){
+		case left:
+			rot = GLM_PI_2f;
+			break;
+		case up:
+			rot = 0.0f;
+			break;
+		case down:
+			rot = GLM_PI;
+			break;
+		case right:
+			rot = GLM_PI_2f*3;
+			break;
 	}
-	printw("%s", direction_char);
+	graphics_draw_square(input_output, size, pos, &rot, col, head);
 }
 
-void snake_draw_segment(struct snake_segment *segment)
+void snake_draw_tail(struct snake_segment *tail_segment, struct IO_handler *input_output)
 {
-	move(segment->y, segment->x);
-	printw(block);
+	float size[2] = {1.0f, 1.0f};
+	float pos[2] = {0.0, 0.0};
+	float col[3] = {1.0f, 1.0f, 1.0f};
+
+	pos[0] = tail_segment->x * SNAKE_PART_LENGTH;
+	pos[1] = tail_segment->y * SNAKE_PART_LENGTH;
+
+	float rot;
+
+	switch(tail_segment->heading){
+		case left:
+			rot = GLM_PI_2f;
+			break;
+		case up:
+			rot = 0.0f;
+			break;
+		case down:
+			rot = GLM_PIf;
+			break;
+		case right:
+			rot = GLM_PI_2f*3;
+			break;
+	}
+	graphics_draw_square(input_output, size, pos, &rot, col, tail);
+}
+
+void snake_draw_segment(struct snake_segment *segment, struct IO_handler *input_output)
+{
+	float size[2] = {1.0f, 1.0f};
+	float pos[2] = {0.0, 0.0};
+	float col[3] = {1.0f, 1.0f, 1.0f};
+
+	pos[0] = segment->x * SNAKE_PART_LENGTH;
+	pos[1] = segment->y * SNAKE_PART_LENGTH;
+
+	float rot = segment->heading * GLM_PI_2f;
+
+	graphics_draw_square(input_output, size, pos, &rot, col, body);
 }
 
 void clear_game_screen()
@@ -424,24 +469,53 @@ void snake_restore_terminal_settings()
 	endwin();
 }
 
-void snake_handle_input(struct snake_segment *player, struct food *mouse)
+void snake_draw_background(struct IO_handler *input_output)
+{
+	float size[2] = {WINDOW_SCALE/SNAKE_PART_LENGTH, WINDOW_SCALE/SNAKE_PART_LENGTH};
+	float pos[2] = {0, 0};
+	float rot = 0;
+	float col[3] = {1.0f, 1.0f, 1.0f};
+	graphics_draw_square(input_output, size, pos, &rot, col, background);
+}
+
+void snake_handle_input(struct snake_segment *player, struct food *mouse, struct IO_handler *input_output)
 {
 	int input;
-	flushinp();
-	input = getch();
+	static long unsigned int last_in_time;
+	long unsigned int call_time = glfwGetTime();
+	const float delay = 0.1;
+	float t_elapsed = (call_time - last_in_time); 
+	if (t_elapsed < delay)
+		usleep((delay - t_elapsed) * 1000000);
+	while(1){
+		glfwPollEvents();
+		if (input_output->cur_button == GLFW_KEY_Q){
+			glfwSetWindowShouldClose(input_output->win, true);
+			kill_everything(player, mouse, input_output);
+		} else if (input_output->cur_button == GLFW_KEY_UP){
+			snake_change_direction(player, KEY_UP);
+		} else if (input_output->cur_button == GLFW_KEY_DOWN){
+			snake_change_direction(player, KEY_DOWN);
+		} else if (input_output->cur_button == GLFW_KEY_RIGHT){
+			snake_change_direction(player, KEY_RIGHT);
+		} else if (input_output->cur_button == GLFW_KEY_LEFT){
+			snake_change_direction(player, KEY_LEFT);
+		} else if (input_output->cur_button == GLFW_KEY_P){
+			//snake_pause_game(player, mouse);
+		} else {
+			if ((glfwGetTime() - call_time) > 0.2)
+				break;
+			else
+				continue;
+		}
+		break;
+	}
 
-	if ((input == 'q') || (input == 'Q'))
-		kill_everything(player, mouse);
+	last_in_time = glfwGetTime();
 
-	if ((input == KEY_UP) || (input == KEY_DOWN) || (input == KEY_RIGHT) || (input == KEY_LEFT)) 
-		snake_change_direction(player, input);
-	
-	if ((input == 'p') || (input == 'P'))
-		snake_pause_game(player, mouse);
 	pthread_mutex_lock(&input_flag_lock);
 	received_input = 1;
 	pthread_mutex_unlock(&input_flag_lock);
-
 }
 
 void draw_pause_menu(enum menu_commands selected)
@@ -452,14 +526,14 @@ void draw_pause_menu(enum menu_commands selected)
 	for (num_options = 0; pause_menu_options[num_options] != NULL; num_options++);
 	
 	num_options++;
-	y = LINES/2 - num_options/2;
+	y = N_LINES/2 - num_options/2;
 	
 	for (int i = 0; pause_menu_options[i] != NULL; i++){
 		if (i == selected)
 			attron(COLOR_PAIR(INVERSE_COLOR_PAIR));
 
 		option_len = strlen(pause_menu_options[i]);
-		x = COLS/2 - option_len/2;
+		x = N_COLS/2 - option_len/2;
 		move(y, x);
 		printw("%s", pause_menu_options[i]);
 		y++;
@@ -497,7 +571,7 @@ void snake_pause_game(struct snake_segment *player, struct food *mouse)
 				goto unpause;
 				break;
 			case Quit:
-				kill_everything(player, mouse);
+				//kill_everything(player, mouse);
 			}
 		}
 	}
@@ -537,11 +611,14 @@ void snake_change_direction(struct snake_segment *player, int input)
 	}
 }
 
-void kill_everything(struct snake_segment *player, struct food *mouse)
+void kill_everything(struct snake_segment *player, struct food *mouse, struct IO_handler *input_output)
 {
 	struct list_head *i, *tmp;
 	struct snake_segment *cur_segment;
 	snake_restore_terminal_settings();
+	glfwDestroyWindow(input_output->win);
+	glfwMakeContextCurrent(NULL);
+	glfwTerminate();
 	list_for_each_safe(i, tmp, &player->list){
 		cur_segment = list_entry(i, struct snake_segment, list);
 		list_del(i);
@@ -549,6 +626,7 @@ void kill_everything(struct snake_segment *player, struct food *mouse)
 	}
 	free(player);
 	free(mouse);
+
 	pthread_mutex_destroy(&screen_lock);
 	pthread_mutex_destroy(&pause_lock);
 	pthread_mutex_destroy(&input_flag_lock);
@@ -563,8 +641,6 @@ void snake_place_food(struct snake_segment *player, struct food *mouse)
 	is_ok = 0;
 	while (!is_ok){
 		x = random()%(HIGHER_X_LIMIT - LOWER_X_LIMIT) + LOWER_X_LIMIT;
-		if (x % 2 == 0)
-			x--;
 		y = (random()%(HIGHER_Y_LIMIT - LOWER_Y_LIMIT) + LOWER_Y_LIMIT);
 		is_ok = 1;
 		if (player->x == x && player->y == y){
